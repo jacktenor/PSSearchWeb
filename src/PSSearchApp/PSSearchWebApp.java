@@ -89,7 +89,7 @@ public class PSSearchWebApp {
             .append("th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #020d1f; }")
             .append("th { border-radius: 12px; background-color: #010e7d; }")
             .append("tr:hover { background-color: #010e7d; color: #ffffff; }")
-            .append("button { background-color: #020d1f; color: #ffffff; border-radius: 12px; margin: 10px 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; border: none; border-radius: 12px; transition: background-color 0.3s ease, color 0.3s ease; }")
+            .append("button { background-color: #020d1f; color: #ffffff; border-radius: 8px; margin: 10px 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; border: none; border-radius: 12px; transition: background-color 0.3s ease, color 0.3s ease; }")
             .append("button:hover { background-color: #010e7d; color: #ffffff; }")
             .append("button:active { transform: scale(0.98); }")
             .append("a { color: #0071b8; text-decoration: none; }")
@@ -116,16 +116,19 @@ public class PSSearchWebApp {
             html.append("<tr><td>").append(process[0])
                 .append("</td><td><a href=\"").append(googleSearchUrl)
                 .append("\" target=\"_blank\">").append(process[1])
-                .append("</a></td><td>").append(process[2])  // CPU Usage
-                .append("</td><td>").append(process[3])  // Memory Usage
+                .append("</a></td><td>").append(process[2]).append("%")  // CPU Usage with %
+                .append("</td><td>").append(process[3]).append("%")  // Memory Usage with %
                 .append("</td><td>")
                 .append("<a href='#' onclick='confirmKill(\"").append(process[0])
                 .append("\")'>Kill</a>")
                 .append("</td></tr>");
         }
 
-        html.append("</table>")
-            .append("</body></html>");
+       		html.append("</table>")
+   				.append("<center><a href=https://beeralator.com style='color:cyan'>https://beeralator.com</a></center>")
+   				.append("<br>")
+       			.append("<center><a href=https://github.com/jacktenor style='color:cyan'>https://github.com/jacktenor</a></center>")
+       			.append("</body></html>");
 
         return html.toString();
     }
@@ -152,6 +155,7 @@ public class PSSearchWebApp {
 
                 String command = remaining.substring(0, lastSpace).trim();
 
+                // Store CPU and memory usage as numbers for sorting
                 processes.add(new String[]{pid, command, cpu, mem});
             }
             input.close();
