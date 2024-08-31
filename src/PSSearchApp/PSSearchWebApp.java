@@ -12,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class PSSearchWebApp {
@@ -81,17 +83,23 @@ public class PSSearchWebApp {
         html.append("<!DOCTYPE html>")
             .append("<html><head><title>Running Processes</title>")
             .append("<style>")
-            .append("table { width: 60%; border-collapse: collapse; margin: 20px auto; }")
-            .append("th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }")
-            .append("tr:hover { background-color: #f5f5f5; }")
-            .append("button { margin: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; }")
+            .append("body { background-color: #2c3e50; color: #ecf0f1; font-family: Arial, sans-serif; }")
+            .append("h1 { text-align: center; }")
+            .append("table { width: 80%; border-collapse: collapse; margin: 20px auto; background-color: #020d1f; }")
+            .append("th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #020d1f; }")
+            .append("th { border-radius: 12px; background-color: #010e7d; }")
+            .append("tr:hover { background-color: #010e7d; color: #ffffff; }")
+            .append("button { background-color: #020d1f; color: #ffffff; border-radius: 12px; margin: 10px 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; border: none; border-radius: 12px; transition: background-color 0.3s ease, color 0.3s ease; }")
+            .append("button:hover { background-color: #010e7d; color: #ffffff; }")
+            .append("button:active { transform: scale(0.98); }")
+            .append("a { color: #0071b8; text-decoration: none; }")
+            .append("a:hover { color: #00f2ff; text-decoration: underline; }")
             .append("</style>")
             .append("<script>")
             .append("function confirmKill(pid) {")
             .append("  if (confirm('Are you sure you want to kill process ' + pid + '?')) {")
             .append("    window.location.href = '/kill?pid=' + pid;")
             .append("  }")
-            .append("}")
             .append("</script>")
             .append("</head><body>")
             .append("<h1 style='text-align:center;'>Running Processes</h1>")
@@ -100,7 +108,7 @@ public class PSSearchWebApp {
             .append("<button onclick='window.location.href=\"/stop\"'>Stop Server</button>")
             .append("</div>")
             .append("<table>")
-            .append("<tr><th>PID</th><th>Process Name</th><th>Actions</th></tr>");
+            .append("<tr><th>PID</th><th>Process Name</th><th>CPU (%)</th><th>Memory (%)</th><th>Actions</th></tr>");
 
         for (String[] process : processes) {
             String processName = URLEncoder.encode(process[1].trim(), StandardCharsets.UTF_8);
@@ -108,7 +116,9 @@ public class PSSearchWebApp {
             html.append("<tr><td>").append(process[0])
                 .append("</td><td><a href=\"").append(googleSearchUrl)
                 .append("\" target=\"_blank\">").append(process[1])
-                .append("</a></td><td>")
+                .append("</a></td><td>").append(process[2])  // CPU Usage
+                .append("</td><td>").append(process[3])  // Memory Usage
+                .append("</td><td>")
                 .append("<a href='#' onclick='confirmKill(\"").append(process[0])
                 .append("\")'>Kill</a>")
                 .append("</td></tr>");
@@ -119,21 +129,45 @@ public class PSSearchWebApp {
 
         return html.toString();
     }
-
+    
     private static List<String[]> getRunningProcesses() {
         List<String[]> processes = new ArrayList<>();
         try {
             String line;
-            Process p = Runtime.getRuntime().exec("ps -e -o pid,comm");
+            // Modify the `ps` command to include PID, Command, %CPU, and %MEM
+            Process p = Runtime.getRuntime().exec("ps -e -o pid=,comm=,pcpu=,pmem=");
             BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            input.readLine(); // Skip the header line
             while ((line = input.readLine()) != null) {
-                String[] processDetails = line.trim().split("\\s+", 2);
-                if (processDetails.length == 2) {
-                    processes.add(processDetails);
-                }
+                line = line.trim();
+                int firstSpace = line.indexOf(' ');
+                String pid = line.substring(0, firstSpace).trim();
+
+                String remaining = line.substring(firstSpace).trim();
+                int lastSpace = remaining.lastIndexOf(' ');
+                String mem = remaining.substring(lastSpace).trim();
+
+                remaining = remaining.substring(0, lastSpace).trim();
+                lastSpace = remaining.lastIndexOf(' ');
+                String cpu = remaining.substring(lastSpace).trim();
+
+                String command = remaining.substring(0, lastSpace).trim();
+
+                processes.add(new String[]{pid, command, cpu, mem});
             }
             input.close();
+            
+            // Sort the list by CPU usage (descending), then by memory usage (descending)
+            processes.sort((p1, p2) -> {
+                double cpu1 = Double.parseDouble(p1[2]);
+                double cpu2 = Double.parseDouble(p2[2]);
+                if (cpu1 != cpu2) {
+                    return Double.compare(cpu2, cpu1); // Sort by CPU descending
+                }
+                double mem1 = Double.parseDouble(p1[3]);
+                double mem2 = Double.parseDouble(p2[3]);
+                return Double.compare(mem2, mem1); // Sort by memory descending
+            });
+
         } catch (Exception err) {
             err.printStackTrace();
         }
